@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标注工作量计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', '微软雅黑', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .calculator-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input:read-only {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 2px solid #e1e1e1;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .formula-display {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .formula-display h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .formula-display p {
+            color: #666;
+            line-height: 1.6;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .result-highlight {
+            background-color: #e8f5e8 !important;
+            border-color: #28a745 !important;
+            color: #155724 !important;
+        }
+
+        @media (max-width: 600px) {
+            .calculator-container {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 24px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1 class="title">标注工作量计算器</h1>
+        
+        <form id="calculatorForm">
+            <div class="form-group">
+                <label for="workHours">一天工作时间 (小时)</label>
+                <input type="number" id="workHours" step="0.1" min="0" placeholder="例如：8">
+            </div>
+            
+            <div class="form-group">
+                <label for="totalDays">工作总天数</label>
+                <input type="number" id="totalDays" step="1" min="0" placeholder="例如：30">
+            </div>
+            
+            <div class="form-group">
+                <label for="totalSamples">标记样本总数</label>
+                <input type="number" id="totalSamples" step="1" min="0" placeholder="例如：10000">
+            </div>
+            
+            <div class="form-group">
+                <label for="samplesPerMinute">每分钟标注数量</label>
+                <input type="number" id="samplesPerMinute" step="0.1" min="0" placeholder="例如：5">
+            </div>
+            
+            <div class="form-group">
+                <label for="peopleCount">人数</label>
+                <input type="number" id="peopleCount" step="1" min="0" placeholder="例如：3">
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn btn-primary" onclick="calculateMissing()">自动计算</button>
+                <button type="button" class="btn btn-secondary" onclick="clearAll()">清空所有</button>
+            </div>
+        </form>
+        
+        <div class="formula-display">
+            <h3>计算公式</h3>
+            <p>样本总数 = 工作总天数 × 人数 × 每分钟标注量 × 工作时间(小时) × 60</p>
+            <p>说明：留空任意一个字段，其他字段填满后会自动计算该字段的值</p>
+        </div>
+    </div>
+
+    <script>
+        function calculateMissing() {
+            const fields = {
+                workHours: document.getElementById('workHours'),
+                totalDays: document.getElementById('totalDays'),
+                totalSamples: document.getElementById('totalSamples'),
+                samplesPerMinute: document.getElementById('samplesPerMinute'),
+                peopleCount: document.getElementById('peopleCount')
+            };
+            
+            // 清除之前的高亮
+            Object.values(fields).forEach(field => {
+                field.classList.remove('result-highlight');
+                field.readOnly = false;
+            });
+            
+            // 获取所有非空字段的值
+            const values = {};
+            let emptyField = null;
+            let emptyCount = 0;
+            
+            for (let [key, field] of Object.entries(fields)) {
+                if (field.value === '' || field.value === null) {
+                    emptyField = key;
+                    emptyCount++;
+                } else {
+                    values[key] = parseFloat(field.value);
+                }
+            }
+            
+            if (emptyCount === 0) {
+                alert('所有字段都已填写，无需计算！');
+                return;
+            }
+            
+            if (emptyCount > 1) {
+                alert('请确保只有一个字段为空，其他字段都已填写！');
+                return;
+            }
+            
+            // 验证所有已填写的值都大于0
+            for (let [key, value] of Object.entries(values)) {
+                if (value <= 0) {
+                    alert(`${getFieldName(key)} 必须大于0！`);
+                    return;
+                }
+            }
+            
+            let result;
+            
+            // 根据空字段计算相应的值
+            // 公式：样本总数 = 工作总天数 × 人数 × 每分钟标注量 × 工作时间(小时) × 60
+            switch (emptyField) {
+                case 'totalSamples':
+                    result = values.totalDays * values.peopleCount * values.samplesPerMinute * values.workHours * 60;
+                    break;
+                case 'totalDays':
+                    result = values.totalSamples / (values.peopleCount * values.samplesPerMinute * values.workHours * 60);
+                    break;
+                case 'peopleCount':
+                    result = values.totalSamples / (values.totalDays * values.samplesPerMinute * values.workHours * 60);
+                    break;
+                case 'samplesPerMinute':
+                    result = values.totalSamples / (values.totalDays * values.peopleCount * values.workHours * 60);
+                    break;
+                case 'workHours':
+                    result = values.totalSamples / (values.totalDays * values.peopleCount * values.samplesPerMinute * 60);
+                    break;
+                default:
+                    alert('发生未知错误！');
+                    return;
+            }
+            
+            // 检查结果是否有效
+            if (!isFinite(result) || result <= 0) {
+                alert('计算结果无效，请检查输入的数值！');
+                return;
+            }
+            
+            // 根据字段类型决定小数位数
+            if (emptyField === 'totalSamples' || emptyField === 'totalDays' || emptyField === 'peopleCount') {
+                result = Math.ceil(result); // 向上取整，因为不能有半个人或半天
+            } else {
+                result = Math.round(result * 100) / 100; // 保留2位小数
+            }
+            
+            // 显示结果
+            fields[emptyField].value = result;
+            fields[emptyField].classList.add('result-highlight');
+            fields[emptyField].readOnly = true;
+            
+            // 显示计算说明
+            const fieldName = getFieldName(emptyField);
+            alert(`计算完成！${fieldName} = ${result}${getUnit(emptyField)}`);
+        }
+        
+        function getFieldName(fieldKey) {
+            const names = {
+                workHours: '一天工作时间',
+                totalDays: '工作总天数',
+                totalSamples: '标记样本总数',
+                samplesPerMinute: '每分钟标注数量',
+                peopleCount: '人数'
+            };
+            return names[fieldKey];
+        }
+        
+        function getUnit(fieldKey) {
+            const units = {
+                workHours: '小时',
+                totalDays: '天',
+                totalSamples: '个',
+                samplesPerMinute: '个/分钟',
+                peopleCount: '人'
+            };
+            return units[fieldKey];
+        }
+        
+        function clearAll() {
+            const fields = document.querySelectorAll('input');
+            fields.forEach(field => {
+                field.value = '';
+                field.classList.remove('result-highlight');
+                field.readOnly = false;
+            });
+        }
+        
+        // 监听输入变化，移除只读状态和高亮
+        document.addEventListener('input', function(e) {
+            if (e.target.type === 'number') {
+                e.target.classList.remove('result-highlight');
+                e.target.readOnly = false;
+            }
+        });
+    </script>
+</body>
+</html>
